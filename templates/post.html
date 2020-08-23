@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Страница поста пользователя {{ author.get_full_name }}{% endblock %}
+{% block header %}Страница поста пользователя {{ author.get_full_name }}{% endblock %}
+{% block content %}
+<main role='main' class='container'>
+    <div class='row'>
+        {% include 'utils/profile_card.html' %}
+    <div class='col-md-9'>
+        {% include 'utils/post_card.html' %}
+        {% include 'comment.html' %}
+    </div>
+</div>
+</main>
+{% endblock %}
