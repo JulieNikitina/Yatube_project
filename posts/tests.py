@@ -1,5 +1,3 @@
-
-
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
@@ -11,6 +9,7 @@ from posts.models import Comment, Follow, Group, Post, User
 class PostPageTest(TestCase):
 
     def setUp(self):
+        cache.clear()
         self.client = Client()
         self.client_logout = Client()
         self.client_second = Client()
@@ -85,8 +84,9 @@ class PostPageTest(TestCase):
             group=self.group_first
         )
         for url in self.urls_list(test_post):
-            response_url = self.client.get(url)
-            self.post_is_real(response_url, test_post)
+            with self.subTest(url=url):
+                response_url = self.client.get(url)
+                self.post_is_real(response_url, test_post)
 
     def test_post_edit(self):
         test_post_for_edit = Post.objects.create(
@@ -101,8 +101,9 @@ class PostPageTest(TestCase):
         )
         post = Post.objects.get(id=test_post_for_edit.id)
         for url in self.urls_list(post):
-            response_url = self.client.get(url)
-            self.post_is_real(response_url, post)
+            with self.subTest(url=url):
+                response_url = self.client.get(url)
+                self.post_is_real(response_url, post)
 
     def test_new_post_logout(self):
         login_url = reverse('login')
@@ -133,10 +134,10 @@ class PostPageTest(TestCase):
             text='text',
             group=self.group_first,
             image=img)
-        cache.clear()
         for url in self.urls_list(post):
-            response_url = self.client.get(url)
-            self.assertContains(response_url, '<img')
+            with self.subTest(url=url):
+                response_url = self.client.get(url)
+                self.assertContains(response_url, '<img')
 
     def test_not_image(self):
         not_image = SimpleUploadedFile(
@@ -165,23 +166,32 @@ class PostPageTest(TestCase):
         )
 
     def test_cache(self):
+        # запрос к странице до создания поста
+        response_empty = self.client.get(reverse('index'))
+        # создали пост
         test_post = Post.objects.create(
             text="Cache_Test_text",
             author=self.user,
             group=self.group_first
         )
+        # проверили что он есть на странице
         response = self.client.get(reverse('index'))
-        self.assertContains(response, test_post.text)
-        test_post_2 = Post.objects.create(
-            text="Cache_Test_text_2",
-            author=self.user,
-            group=self.group_first
-        )
+        post = response.context['page'][0]
+        self.assertEqual(post.text, test_post.text)
+        self.assertEqual(post.author, test_post.author)
+        self.assertEqual(post.group, test_post.group)
+        self.assertEqual(post.pub_date, test_post.pub_date)
+        # удалили пост
+        Post.objects.filter(id=post.id).delete()
+        # проверили что он удалился  в БД
+        self.assertEqual(Post.objects.count(), 0)
         response_second = self.client.get(reverse('index'))
-        self.assertNotContains(response_second, test_post_2.text)
+        # проверили что на странице он еще есть
+        self.assertEqual(response.content, response_second.content)
         cache.clear()
         response_third = self.client.get(reverse('index'))
-        self.assertContains(response_third, test_post_2.text)
+        # проверили идентичность контента до создания поста и после
+        self.assertEqual(response_empty.content, response_third.content)
 
     def test_following(self):
         self.client_logout.post('profile_follow', args=[self.author.username])
@@ -190,26 +200,48 @@ class PostPageTest(TestCase):
             reverse('profile_follow', args=[self.author.username])
         )
         self.assertEqual(Follow.objects.count(), 1)
+
+    def test_unfollowing(self):
+        Follow.objects.create(user=self.user, author=self.author)
+        self.assertEqual(Follow.objects.count(), 1)
         self.client.post(
             reverse('profile_unfollow', args=[self.author.username])
         )
         self.assertEqual(Follow.objects.count(), 0)
 
-    def test_post_in_follow_index(self):
+    def test_index_follow_login_user(self):
+        Follow.objects.create(user=self.user, author=self.author)
         post = Post.objects.create(
             text='test_text',
             author=self.author,
             group=self.group_first
-        )
-        self.client.post(
-            reverse('profile_follow', args=[self.author.username])
         )
         response = self.client.get(reverse('follow_index'))
         self.assertContains(response, post.text)
         response_second = self.client_second.get(reverse('follow_index'))
         self.assertNotContains(response_second, post.text)
 
-    def test_comments(self):
+    def test_index_follow_logout_user(self):
+        response = self.client_logout.get(reverse('follow_index'))
+        login_url = reverse('login')
+        follow_url = reverse('follow_index')
+        target_url = f'{login_url}?next={follow_url}'
+        self.assertRedirects(response, target_url, status_code=302)
+
+    def test_comments_login_user(self):
+        post = Post.objects.create(
+            text='test_text',
+            author=self.author,
+            group=self.group_first
+        )
+        self.client.post(
+            reverse('add_comment', args=[post.author, post.id]),
+            {'text': 'new_comment'},
+            follow=True
+        )
+        self.assertEqual(Comment.objects.count(), 1)
+
+    def test_comment_logout_user(self):
         post = Post.objects.create(
             text='test_text',
             author=self.author,
@@ -221,9 +253,3 @@ class PostPageTest(TestCase):
             follow=True
         )
         self.assertEqual(Comment.objects.count(), 0)
-        self.client.post(
-            reverse('add_comment', args=[post.author, post.id]),
-            {'text': 'new_comment'},
-            follow=True
-        )
-        self.assertEqual(Comment.objects.count(), 1)

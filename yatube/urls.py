@@ -8,15 +8,6 @@ from django.urls import include, path
 handler404 = "posts.views.page_not_found"  # noqa
 handler500 = "posts.views.server_error"  # noqa
 
-
-# По замечанию про перекрытие путей: как я понимаю, что проблема состоит в том,
-# что если пользователь будет иметь имя admin, то он не сможет попасть на свой
-# профиль. И решить это можно либо запретом на имя admin при создании профиля
-# либо изменением posts/urls пути '<str:username>/' на что-нибудь вроде
-# users/<str:username>
-# если мне не изменяем память, пути эти я прописывала по заданиям из теории,
-# лучше исправить?
-
 urlpatterns = [
     path('about/', include('django.contrib.flatpages.urls')),
     path(

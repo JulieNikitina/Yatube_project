@@ -67,10 +67,10 @@ class Comment(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        text = self.text
         date = self.created
         author = self.author
-        return f'{author}.{date}.{text}'
+        cut_text = self.text[0:10]
+        return f'{author}.{date}.{cut_text}'
 
 
 class Follow(models.Model):
@@ -83,3 +83,6 @@ class Follow(models.Model):
         User, on_delete=models.CASCADE,
         related_name='following'
     )
+
+    class Meta:
+        unique_together = ['user', 'author']
