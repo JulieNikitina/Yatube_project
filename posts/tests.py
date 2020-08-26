@@ -9,7 +9,6 @@ from posts.models import Comment, Follow, Group, Post, User
 class PostPageTest(TestCase):
 
     def setUp(self):
-        cache.clear()
         self.client = Client()
         self.client_logout = Client()
         self.client_second = Client()
@@ -34,6 +33,7 @@ class PostPageTest(TestCase):
             slug='second_test_group_slug',
             title='second_test_group_title'
         )
+        cache.clear()
 
     def post_is_real(self, response, test_post):
         paginator = response.context.get('paginator')
@@ -196,35 +196,49 @@ class PostPageTest(TestCase):
     def test_following(self):
         self.client_logout.post('profile_follow', args=[self.author.username])
         self.assertEqual(Follow.objects.count(), 0)
-        self.client.post(
-            reverse('profile_follow', args=[self.author.username])
+        response = self.client.post(
+            reverse('profile_follow', args=[self.author.username]), follow=True
         )
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(Follow.objects.count(), 1)
+        follow = Follow.objects.first()
+        self.assertEqual(follow.author, self.author)
+        self.assertEqual(follow.user, self.user)
 
     def test_unfollowing(self):
         Follow.objects.create(user=self.user, author=self.author)
         self.assertEqual(Follow.objects.count(), 1)
-        self.client.post(
-            reverse('profile_unfollow', args=[self.author.username])
+        response = self.client.post(
+            reverse(
+                'profile_unfollow',
+                args=[self.author.username]
+            ),
+            follow=True
         )
         self.assertEqual(Follow.objects.count(), 0)
+        self.assertEqual(response.status_code, 200)
 
     def test_index_follow_login_user(self):
         Follow.objects.create(user=self.user, author=self.author)
-        post = Post.objects.create(
+        test_post = Post.objects.create(
             text='test_text',
             author=self.author,
             group=self.group_first
         )
         response = self.client.get(reverse('follow_index'))
-        self.assertContains(response, post.text)
+        # но в ТЗ у нас нужно проверить что "пост появляется в ленте", не
+        # значит ли это, что проверяем как раз шаблон?
+        self.post_is_real(response, test_post)
+        # варианта изящнее, как через контекст проверить отсутствие поста,
+        # не придумалось
         response_second = self.client_second.get(reverse('follow_index'))
-        self.assertNotContains(response_second, post.text)
+        count = len(response_second.context['page'])
+        self.assertEqual(count, 0)
 
     def test_index_follow_logout_user(self):
-        response = self.client_logout.get(reverse('follow_index'))
         login_url = reverse('login')
         follow_url = reverse('follow_index')
+        response = self.client_logout.get(follow_url)
         target_url = f'{login_url}?next={follow_url}'
         self.assertRedirects(response, target_url, status_code=302)
 
@@ -240,6 +254,9 @@ class PostPageTest(TestCase):
             follow=True
         )
         self.assertEqual(Comment.objects.count(), 1)
+        comment = Comment.objects.first()
+        self.assertEqual(comment.text, 'new_comment')
+        self.assertEqual(comment.author, self.user)
 
     def test_comment_logout_user(self):
         post = Post.objects.create(

@@ -63,7 +63,7 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         related_name='comments',
     )
-    text = models.TextField('текст', help_text='Напишите ваш коментарий')
+    text = models.TextField('текст', help_text='Напишите ваш комментарий')
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
