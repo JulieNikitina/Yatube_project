@@ -1,3 +1,5 @@
+import os
+
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
@@ -7,7 +9,6 @@ from posts.models import Comment, Follow, Group, Post, User
 
 
 class PostPageTest(TestCase):
-
     def setUp(self):
         self.client = Client()
         self.client_logout = Client()
@@ -138,6 +139,7 @@ class PostPageTest(TestCase):
             with self.subTest(url=url):
                 response_url = self.client.get(url)
                 self.assertContains(response_url, '<img')
+        os.remove('media/posts/image.gif')
 
     def test_not_image(self):
         not_image = SimpleUploadedFile(
