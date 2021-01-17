@@ -4,9 +4,14 @@
     <div class='container'>
           {% include "utils/menu.html" with index=True %}
            <h1>Ваша лента</h1>
+            {% if paginator.count == 0 %}
+        У вас нет избранных аторов.
+        Подпишитесь на кого-нибудь, и здесь появятся их посты.
+           {% else %}
            {% for post in page %}
            {% include "utils/post_card.html" with post=post %}
            {% endfor %}
+        {% endif %}
     </div>
         {% if page.has_other_pages %}
             {% include "utils/paginator.html" with items=page paginator=paginator%}

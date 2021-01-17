@@ -256,6 +256,8 @@ class PostPageTest(TestCase):
             follow=True
         )
         self.assertEqual(Comment.objects.count(), 1)
+        response= Comment.objects.filter(author=self.user, post=post).exists()
+        print(response)
         comment = Comment.objects.first()
         self.assertEqual(comment.text, 'new_comment')
         self.assertEqual(comment.author, self.user)

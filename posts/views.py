@@ -12,10 +12,11 @@ def index(request):
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
     page = paginator.get_page(page_number)
+    button = True
     return render(
         request,
         'index.html',
-        {'page': page, 'paginator': paginator}
+        {'page': page, 'paginator': paginator, 'button': button},
     )
 
 
@@ -40,14 +41,8 @@ def new_post(request):
 
 def profile(request, username):
     author = get_object_or_404(User, username=username)
+    post = author.posts.count()
     user = request.user
-    # корректно ли не делать дополнительную проверку аутентификации?
-    # при незалогиненном пользователе following вернет false и насколько я
-    # понимаю корректно отрабатывает, но мб я не права и это костыль?
-    # в шаблоне кнопку "подписаться" для незалогиненного пользователя
-    # оставила осознанно: при нажатии редирект на страницу логина, в дискуссии
-    # пришли к варианту, что кнопка показывает незарегистрироанному
-    # пользователю расширенный функционал сайта и побуждает зарегистрироваться
     following = Follow.objects.filter(
         user__username=user,
         author=author
@@ -112,10 +107,11 @@ def follow_index(request):
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
     page = paginator.get_page(page_number)
+    button_sec = True
     return render(
         request,
         'follow.html',
-        {'page': page, 'paginator': paginator}
+        {'page': page, 'paginator': paginator, 'button_sec': button_sec}
     )
 
 
