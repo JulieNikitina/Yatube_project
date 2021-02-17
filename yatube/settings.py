@@ -2,13 +2,16 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-SECRET_KEY = 'p6e@p@ii63ii9-5#2l9u)80lg0bz(=*$1j-e$ha@*(fab3w^e2'
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 DEBUG = False
 
 ALLOWED_HOSTS = [
         "localhost",
         "130.193.40.117",
+        "127.0.0.1",
+        "[::1]",
+        "testserver",
 ]
 
 INSTALLED_APPS = [
