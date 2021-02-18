@@ -5,7 +5,7 @@ Social network for personal blogging
 # View it works
 * [Index](https://julienikitina.tk/)
 * [Page of group](https://julienikitina.tk/group/movie/)
-* [Page of group](https://julienikitina.tk/group/wine/)
+* [Page of another group](https://julienikitina.tk/group/wine/)
 * [Page of user](https://julienikitina.tk/Julie/)
 
 ### What I used
